@@ -10,3 +10,6 @@ class UserNotFoundException(userId: String) :
 
 class UnauthorizedAdminActionException(adminId: String) :
     UserDomainException("Action denied: User $adminId does not have administrative privileges.")
+
+class TrustAdjustmentException(userId: String, reason: String) :
+    UserDomainException("Impossible d'ajuster le score de l'utilisateur $userId : $reason")
