@@ -10,4 +10,10 @@ interface PostRepository {
     suspend fun findAllPublished(): List<Post>
     suspend fun delete(id: Uuid)
     suspend fun existsByExternalId(externalId: String): Boolean
+
+    /**
+     * Met à jour uniquement le statut d'un post.
+     * Utilisé pour la modération (ARCHIVED, DELETED, etc.)
+     */
+    suspend fun updateStatus(id: Uuid, status: PostStatus)
 }
