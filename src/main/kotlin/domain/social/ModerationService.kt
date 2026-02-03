@@ -87,4 +87,55 @@ class ModerationService(
             else -> throw ModerationActionException("Impossible d'enregistrer le signalement", throwable)
         }
     }
+
+    /**
+     * Confirmation manuelle par un modérateur.
+     * Déclenche la sanction sur le TrustScore et la suppression définitive.
+     */
+    suspend fun confirmReport(adminId: Uuid, reportId: Uuid): Result<Unit> = runCatching {
+        // 1. Récupérer le signalement
+        val report = reportRepository.findById(reportId)
+            ?: throw ReportNotFoundException("Signalement $reportId introuvable.")
+
+        // 2. Récupérer le post associé pour trouver l'auteur
+        val post = postRepository.findById(report.postId)
+            ?: throw PostNotFoundException("Le post signalé n'existe plus.")
+
+        // 3. Appliquer la sanction sur le TrustScore de l'auteur
+        val impact = when (report.reason) {
+            ReportReason.FAKE_NEWS -> TrustImpact.FAKE_NEWS_PUBLISHED // Sanction lourde
+            ReportReason.HARASSMENT -> TrustImpact.REPORT_CONFIRMED   // Sanction standard
+            else -> TrustImpact.REPORT_CONFIRMED
+        }
+
+        userService.adjustUserTrust(post.authorId, impact).getOrThrow()
+
+        // 4. Nettoyage : Supprimer le post et marquer le report comme validé
+        postRepository.delete(post.id)
+        reportRepository.updateStatus(reportId, ReportStatus.VALIDATED)
+
+        Result.success(Unit)
+    }.getOrElse { throwable ->
+        when (throwable) {
+            is ReportNotFoundException, is PostNotFoundException -> throw throwable
+            else -> throw ModerationActionException("Échec de la validation humaine", throwable)
+        }
+    }
+
+    /**
+     * Rejette un signalement.
+     * Le post est réhabilité (repasse en PUBLISHED) et le report est marqué REJECTED.
+     */
+    suspend fun rejectReport(adminId: Uuid, reportId: Uuid): Result<Unit> = runCatching {
+        val report = reportRepository.findById(reportId)
+            ?: throw ReportNotFoundException("Signalement $reportId introuvable.")
+
+        // On remet le post en ligne
+        postRepository.updateStatus(report.postId, PostStatus.PUBLISHED)
+
+        // On clôture le signalement
+        reportRepository.updateStatus(reportId, ReportStatus.REJECTED)
+    }.onFailure {
+        throw ModerationActionException("Échec du rejet du signalement", it)
+    }
 }
