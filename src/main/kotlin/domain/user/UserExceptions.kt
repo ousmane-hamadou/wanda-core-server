@@ -13,3 +13,5 @@ class UnauthorizedAdminActionException(adminId: String) :
 
 class TrustAdjustmentException(userId: String, reason: String) :
     UserDomainException("Impossible d'ajuster le score de l'utilisateur $userId : $reason")
+
+class UserUpdateException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

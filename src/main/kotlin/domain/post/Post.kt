@@ -1,5 +1,7 @@
 package com.github.ousmane_hamadou.domain.post
 
+import com.github.ousmane_hamadou.domain.user.Department
+import com.github.ousmane_hamadou.domain.user.Establishment
 import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 import kotlin.uuid.ExperimentalUuidApi
@@ -14,7 +16,8 @@ enum class PostStatus {
 enum class PostCategory {
     INFO,       // Information générale (cours, emploi du temps)
     ALERT,      // Alerte urgente (examen annulé, incident)
-    EVENT       // Événements estudiantins
+    EVENT, // Événements estudiantins
+    OFFICIAL,
 }
 
 enum class PostSource {
@@ -35,4 +38,14 @@ data class Post(
     val source: PostSource = PostSource.COMMUNITY,
     val externalId: String? = null,
     val originName: String? = null,
+    val visibility: VisibilityScope = VisibilityScope(),
+)
+
+/**
+ * Définit la portée de visibilité d'un post.
+ * Si les deux sont nuls, le post est considéré comme public à toute l'université.
+ */
+data class VisibilityScope(
+    val establishment: Establishment? = null, // Visible par tout l'établissement (ex: IUT)
+    val department: Department? = null        // Restreint à une filière (ex: Génie Informatique)
 )

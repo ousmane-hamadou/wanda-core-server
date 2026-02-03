@@ -7,3 +7,8 @@ class PostAuthorNotFoundException(authorId: String) :
 
 class PostNotFoundException(postId: String) :
     PostDomainException("La publication avec l'ID $postId n'existe pas.")
+
+class PostCreationException(
+    message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)

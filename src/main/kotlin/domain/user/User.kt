@@ -3,7 +3,7 @@ package com.github.ousmane_hamadou.domain.user
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-enum class Role {
+enum class UserRole {
     STUDENT,   // Utilisateur standard
     DELEGATE,  // Délégué (Source de confiance)
     ADMIN      // Modérateur (Administration)
@@ -15,12 +15,15 @@ data class User(
     val id: Uuid = Uuid.random(),
     val matricule: String,
     val fullName: String,
-    val faculty: String,
     val level: String,
-    val role: Role,
-    val trustScore: TrustScore = TrustScore.DEFAULT
+    val role: UserRole,
+    val trustScore: TrustScore = TrustScore.DEFAULT,
+    val department: Department,
 ) {
-    fun canPublishCertified(): Boolean = role == Role.DELEGATE || role == Role.ADMIN
+    val establishment: Establishment
+        get() = department.establishment
+
+    fun canPublishCertified(): Boolean = role == UserRole.DELEGATE || role == UserRole.ADMIN
 
     fun canVote(): Boolean = trustScore.value > 0
 

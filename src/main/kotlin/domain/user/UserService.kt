@@ -12,7 +12,7 @@ class UserService(
     suspend fun registerUser(
         matricule: String,
         fullName: String,
-        faculty: String,
+        department: Department,
         level: String
     ): Result<User> {
         val existingUser = userRepository.findByMatricule(matricule)
@@ -24,13 +24,17 @@ class UserService(
         val newUser = User(
             matricule = matricule,
             fullName = fullName,
-            faculty = faculty,
+            department = department,
             level = level,
-            role = Role.STUDENT,
+            role = UserRole.STUDENT,
             trustScore = TrustScore.DEFAULT
         )
 
-        return Result.success(userRepository.save(newUser))
+        return try {
+            Result.success(userRepository.save(newUser))
+        } catch (e: Exception) {
+            Result.failure(UserUpdateException("Erreur lors de la création du compte", e))
+        }
     }
 
 
@@ -39,7 +43,7 @@ class UserService(
         val admin = userRepository.findById(adminId)
             ?: return Result.failure(UserNotFoundException(adminId.toString()))
 
-        if (admin.role != Role.ADMIN) {
+        if (admin.role != UserRole.ADMIN) {
             return Result.failure(UnauthorizedAdminActionException(targetStudentId.toString()))
         }
 
@@ -49,7 +53,7 @@ class UserService(
 
         // Appliquer le changement de rôle
         val promotedUser = student.copy(
-            role = Role.DELEGATE,
+            role = UserRole.DELEGATE,
             trustScore = TrustScore.MAX
         )
 

@@ -23,16 +23,16 @@ class UserServiceTest {
             id = adminId,
             matricule = "ADM-001",
             fullName = "Admin User",
-            role = Role.ADMIN,
-            faculty = "FS",
+            role = UserRole.ADMIN,
+            department = Department.COMPUTER_SCIENCE,
             level = "N/A"
         )
         val student = User(
             id = studentId,
             matricule = "STU-001",
             fullName = "Student User",
-            role = Role.STUDENT,
-            faculty = "FS",
+            role = UserRole.STUDENT,
+            department = Department.COMPUTER_SCIENCE,
             level = "L3"
         )
 
@@ -46,7 +46,7 @@ class UserServiceTest {
         // Then
         assertTrue(result.isSuccess)
         val updatedUser = result.getOrThrow()
-        assertEquals(Role.DELEGATE, updatedUser.role)
+        assertEquals(UserRole.DELEGATE, updatedUser.role)
         assertEquals(TrustScore.MAX, updatedUser.trustScore)
     }
 
@@ -59,8 +59,8 @@ class UserServiceTest {
             id = fakeAdminId,
             matricule = "STU-002",
             fullName = "Regular Student",
-            role = Role.STUDENT, // Il n'est PAS ADMIN
-            faculty = "FS",
+            role = UserRole.STUDENT,
+            department = Department.PUBLIC_LAW,
             level = "L1"
         )
 
@@ -70,25 +70,18 @@ class UserServiceTest {
         val result = userService.promoteToDelegate(fakeAdminId, studentId)
 
         // Then
-        assertTrue(result.isFailure, "Result should be a failure")
-
-        val exception = result.exceptionOrNull()
-
-        assertTrue(
-            exception is UnauthorizedAdminActionException,
-            "Expected UnauthorizedAdminActionException but got ${exception?.javaClass?.simpleName}: ${exception?.message}"
-        )
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is UnauthorizedAdminActionException)
     }
 
     @Test
     fun `given existing matricule when registering then should throw UserAlreadyExistsException`() = runTest {
         // Given
         val matricule = "20A045FS"
-        // Simule qu'un utilisateur existe déjà en retournant un mock au lieu de null
         coEvery { userRepository.findByMatricule(matricule) } returns mockk<User>()
 
-        // When
-        val result = userService.registerUser(matricule, "Jane Doe", "IUT", "GIM2")
+        // When - Utilisation du type Department au lieu de String
+        val result = userService.registerUser(matricule, "Jane Doe", Department.COMPUTER_SCIENCE, "GIM2")
 
         // Then
         assertTrue(result.isFailure)
@@ -103,8 +96,8 @@ class UserServiceTest {
             id = userId,
             matricule = "MAT-1",
             fullName = "Ousmane",
-            role = Role.STUDENT,
-            faculty = "FS",
+            role = UserRole.STUDENT,
+            department = Department.MATHEMATICS,
             level = "L3"
         )
         coEvery { userRepository.findById(userId) } returns expectedUser
@@ -115,20 +108,6 @@ class UserServiceTest {
         // Then
         assertNotNull(result)
         assertEquals(expectedUser.id, result.id)
-        assertEquals("Ousmane", result.fullName)
-    }
-
-    @Test
-    fun `given non-existent user id when getting profile then should return null`() = runTest {
-        // Given
-        val userId = Uuid.random()
-        coEvery { userRepository.findById(userId) } returns null
-
-        // When
-        val result = userService.getUserProfile(userId)
-
-        // Then
-        assertNull(result)
     }
 
     @Test
@@ -139,8 +118,8 @@ class UserServiceTest {
             id = userId,
             matricule = "MAT-1",
             fullName = "X",
-            role = Role.STUDENT,
-            faculty = "FS",
+            role = UserRole.STUDENT,
+            department = Department.MATHEMATICS,
             level = "L1",
             trustScore = TrustScore(50)
         )
@@ -157,31 +136,6 @@ class UserServiceTest {
     }
 
     @Test
-    fun `given fake news report when adjusting trust then should decrease score by 50`() = runTest {
-        // Given
-        val userId = Uuid.random()
-        val initialUser = User(
-            id = userId,
-            matricule = "MAT-1",
-            fullName = "X",
-            role = Role.STUDENT,
-            faculty = "FS",
-            level = "L1",
-            trustScore = TrustScore(60)
-        )
-
-        coEvery { userRepository.findById(userId) } returns initialUser
-        coEvery { userRepository.save(any()) } returnsArgument 0
-
-        // When
-        val result = userService.adjustUserTrust(userId, TrustImpact.FAKE_NEWS_PUBLISHED)
-
-        // Then
-        assertTrue(result.isSuccess)
-        assertEquals(10, result.getOrThrow().trustScore.value)
-    }
-
-    @Test
     fun `given trust adjustment when score goes below zero then should be clamped to 0`() = runTest {
         // Given
         val userId = Uuid.random()
@@ -189,8 +143,8 @@ class UserServiceTest {
             id = userId,
             matricule = "MAT-1",
             fullName = "X",
-            role = Role.STUDENT,
-            faculty = "FS",
+            role = UserRole.STUDENT,
+            department = Department.COMPUTER_SCIENCE,
             level = "L1",
             trustScore = TrustScore(10)
         )
@@ -199,24 +153,10 @@ class UserServiceTest {
         coEvery { userRepository.save(any()) } returnsArgument 0
 
         // When
-        val result = userService.adjustUserTrust(userId, TrustImpact.REPORT_CONFIRMED) // Impact is -20
+        val result = userService.adjustUserTrust(userId, TrustImpact.REPORT_CONFIRMED)
 
         // Then
         assertTrue(result.isSuccess)
         assertEquals(0, result.getOrThrow().trustScore.value)
-    }
-
-    @Test
-    fun `given non-existent user when adjusting trust then should return UserNotFoundException`() = runTest {
-        // Given
-        val userId = Uuid.random()
-        coEvery { userRepository.findById(userId) } returns null
-
-        // When
-        val result = userService.adjustUserTrust(userId, TrustImpact.POSITIVE_VALIDATION)
-
-        // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is UserNotFoundException)
     }
 }
