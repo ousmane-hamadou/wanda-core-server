@@ -17,6 +17,10 @@ enum class PostCategory {
     EVENT       // Événements estudiantins
 }
 
+enum class PostSource {
+    COMMUNITY, EXTERNAL_OFFICIAL
+}
+
 @OptIn(ExperimentalUuidApi::class)
 data class Post(
     val id: Uuid = Uuid.random(),
@@ -27,7 +31,8 @@ data class Post(
     val status: PostStatus = PostStatus.PENDING,
     val createdAt: LocalDateTime,
     val upVotes: Int = 0,
-    val downVotes: Int = 0
+    val downVotes: Int = 0,
+    val source: PostSource = PostSource.COMMUNITY,
+    val externalId: String? = null,
+    val originName: String? = null,
 )
-
-

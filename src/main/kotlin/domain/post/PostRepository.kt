@@ -9,4 +9,5 @@ interface PostRepository {
     suspend fun findById(id: Uuid): Post?
     suspend fun findAllPublished(): List<Post>
     suspend fun delete(id: Uuid)
+    suspend fun existsByExternalId(externalId: String): Boolean
 }
